@@ -75,7 +75,7 @@ final class NotesApp:NSObject,NSApplicationDelegate,WKScriptMessageHandler,WKNav
         let view=submenu("Présentation");let archives=view.addItem(withTitle:"Afficher les archives",action:#selector(toggleArchives),keyEquivalent:"a");archives.target=self;archives.keyEquivalentModifierMask=[.command,.shift]
         NSApp.mainMenu=menu
     }
-    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Notes",.applicationVersion:(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "1.2.0"),.credits:NSAttributedString(string:"Compagnons\nÉcriture simple, notes locales, exports Word et PDF.")])}
+    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Notes",.applicationVersion:(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "1.2.1"),.credits:NSAttributedString(string:"Compagnons\nÉcriture simple, notes locales, exports Word et PDF.")])}
     @objc func newNote(){current=nil;session=UUID().uuidString;call("Notes.setNote(null,\(json(session)))")}
     @objc func toggleArchives(){call("document.getElementById('archive-toggle').click()")}
     @objc func exportFromMenu(){web.evaluateJavaScript("Notes.snapshot()") {[weak self] result,error in if let body=result as? [String:Any]{self?.export(body)}}}
