@@ -6,6 +6,7 @@ struct Note:Codable {
     var updatedAt:Date
     var html:String
     var plain:String
+    var deletedAt:Date? = nil
     func expires(calendar:Calendar)->Date {calendar.date(byAdding:.month,value:1,to:createdAt) ?? createdAt.addingTimeInterval(31*86400)}
 }
 struct NoteRun:Codable {let text:String;let bold:Bool}
@@ -42,6 +43,10 @@ final class NoteStore {
     func url(_ id:UUID)->URL {directory.appendingPathComponent(id.uuidString+".json")}
     func save(_ note:Note,now:Date=Date())throws {
         if note.expires(calendar:calendar)<=now{if FileManager.default.fileExists(atPath:url(note.id).path){try FileManager.default.removeItem(at:url(note.id))};return}
+        if let existing=try load(note.id,now:now),existing.deletedAt != nil,note.deletedAt == nil{return}
+        try write(note)
+    }
+    private func write(_ note:Note)throws {
         let data=try JSONEncoder().encode(note)
         try data.write(to:url(note.id),options:.atomic)
         try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:url(note.id).path)
@@ -52,6 +57,16 @@ final class NoteStore {
         guard note.id==id else{throw NotesError.message("La note ne correspond pas au fichier local.")}
         if note.expires(calendar:calendar)<=now {try FileManager.default.removeItem(at:path);return nil}
         return note
+    }
+    func setTrashed(_ id:UUID,_ trashed:Bool,now:Date=Date())throws {
+        guard var note=try load(id,now:now) else{return}
+        note.deletedAt=trashed ? (note.deletedAt ?? now):nil
+        try write(note)
+    }
+    func emptyTrash(now:Date=Date())throws {
+        for note in try purge(now:now) where note.deletedAt != nil {
+            try FileManager.default.removeItem(at:url(note.id))
+        }
     }
     @discardableResult func purge(now:Date=Date())throws->[Note] {
         let files=try FileManager.default.contentsOfDirectory(at:directory,includingPropertiesForKeys:[.isRegularFileKey],options:.skipsHiddenFiles)

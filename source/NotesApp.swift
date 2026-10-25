@@ -64,15 +64,15 @@ final class NotesApp:NSObject,NSApplicationDelegate,WKScriptMessageHandler,WKNav
         let view=submenu("Présentation");let archives=view.addItem(withTitle:"Afficher les archives",action:#selector(toggleArchives),keyEquivalent:"a");archives.target=self;archives.keyEquivalentModifierMask=[.command,.shift]
         NSApp.mainMenu=menu
     }
-    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Notes",.applicationVersion:(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "1.0.1"),.credits:NSAttributedString(string:"Compagnons\nÉcriture simple, notes locales, exports Word et PDF.")])}
+    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Notes",.applicationVersion:(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "1.1.0"),.credits:NSAttributedString(string:"Compagnons\nÉcriture simple, notes locales, exports Word et PDF.")])}
     @objc func newNote(){current=nil;session=UUID().uuidString;call("Notes.setNote(null,\(json(session)))")}
     @objc func toggleArchives(){call("document.getElementById('archive-toggle').click()")}
     @objc func exportFromMenu(){web.evaluateJavaScript("Notes.snapshot()") {[weak self] result,error in if let body=result as? [String:Any]{self?.export(body)}}}
     @objc func woke(){expire()}
-    func expire(){do{let notes=try store.purge();records=Dictionary(uniqueKeysWithValues:notes.map{($0.id,$0)});if let current,records[current]==nil{self.current=nil;session=UUID().uuidString};if ready{call("Notes.archives(\(json(["notes":metadata(),"session":session])))")}}catch{showError("Les archives ne peuvent pas être lues.")}}
+    func expire(){do{let notes=try store.purge();records=Dictionary(uniqueKeysWithValues:notes.map{($0.id,$0)});if let current,(records[current]==nil || records[current]?.deletedAt != nil){self.current=nil;session=UUID().uuidString};if ready{call("Notes.archives(\(json(["notes":metadata(),"session":session])))")}}catch{showError("Les archives ne peuvent pas être lues.")}}
     func metadata()->[[String:Any]] {
         let iso=ISO8601DateFormatter()
-        return records.values.sorted{$0.createdAt>$1.createdAt}.map{["id":$0.id.uuidString,"createdAt":iso.string(from:$0.createdAt),"updatedAt":iso.string(from:$0.updatedAt),"plain":String($0.plain.prefix(220)),"fallback":$0.html.contains("<table") ? "Tableau":"Note vide"]}
+        return records.values.sorted{$0.createdAt>$1.createdAt}.map{["id":$0.id.uuidString,"createdAt":iso.string(from:$0.createdAt),"updatedAt":iso.string(from:$0.updatedAt),"plain":String($0.plain.prefix(220)),"deletedAt":$0.deletedAt.map{iso.string(from:$0)} ?? "","fallback":$0.html.contains("<table") ? "Tableau":"Note vide"]}
     }
     func json(_ object:Any)->String {
         guard let data=try? JSONSerialization.data(withJSONObject:object,options:[.fragmentsAllowed]),let value=String(data:data,encoding:.utf8) else{return "null"};return value
@@ -84,7 +84,7 @@ final class NotesApp:NSObject,NSApplicationDelegate,WKScriptMessageHandler,WKNav
         guard body["session"] as? String==session else{return}
         do {
             let snapshot=try snapshot(body)
-            if let current,let previous=records[current],previous.expires(calendar:store.calendar)<=Date(){self.current=nil;session=UUID().uuidString;expire();call("Notes.setNote(null,\(json(session)))");return}
+            if let current,let previous=records[current],(previous.deletedAt != nil || previous.expires(calendar:store.calendar)<=Date()){self.current=nil;session=UUID().uuidString;expire();call("Notes.setNote(null,\(json(session)))");return}
             if current==nil && !snapshot.meaningful{return}
             let now=Date(),old=current.flatMap{records[$0]},note=Note(id:old?.id ?? UUID(),createdAt:old?.createdAt ?? now,updatedAt:now,html:snapshot.html,plain:snapshot.plain)
             try store.save(note);records[note.id]=note;current=note.id
@@ -98,7 +98,16 @@ final class NotesApp:NSObject,NSApplicationDelegate,WKScriptMessageHandler,WKNav
         case "change":changed(body)
         case "new":newNote()
         case "open":
-            if let id=(body["id"] as? String).flatMap(UUID.init(uuidString:)),let note=try? store.load(id){current=id;session=UUID().uuidString;call("Notes.setNote(\(json(["id":id.uuidString,"html":note.html,"plain":note.plain])),\(json(session)))")}
+            if let id=(body["id"] as? String).flatMap(UUID.init(uuidString:)),let note=try? store.load(id),note.deletedAt==nil{current=id;session=UUID().uuidString;call("Notes.setNote(\(json(["id":id.uuidString,"html":note.html,"plain":note.plain])),\(json(session)))")}
+        case "trash", "restore":
+            guard let id=(body["id"] as? String).flatMap(UUID.init(uuidString:)) else{return}
+            do {
+                try store.setTrashed(id,type=="trash")
+                if current==id && type=="trash"{newNote()}
+                expire()
+            }catch{showError("La corbeille ne peut pas être modifiée.")}
+        case "emptyTrash":
+            do{try store.emptyTrash();expire()}catch{showError("La corbeille ne peut pas être vidée.")}
         case "paste":paste()
         case "export":export(body)
         default:break

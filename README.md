@@ -4,7 +4,7 @@ Une petite application macOS pour écrire immédiatement, coller du texte propre
 
 ## Installer
 
-[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.0.1-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
+[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.1.0-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
 
 L’application est indépendante de Notes d’Apple. Son identifiant est `local.compagnons.notes`. Signature ad hoc, sans Developer ID ni notarisation Apple ; macOS peut demander une autorisation d’ouverture sur un autre Mac.
 
@@ -16,6 +16,9 @@ L’application est indépendante de Notes d’Apple. Son identifiant est `local
 - Les seuls styles conservés au collage sont **gras**, **puces rondes** et **tableaux**. Les titres collés deviennent du texte normal.
 - Titres T1/T2/T3 utilisables dans la note et les exports. À la copie, leurs niveaux et leur présentation sont retirés ; le gras explicite du corps, les puces et les tableaux restent disponibles.
 - Création d’un tableau en choisissant les colonnes et les lignes dans une grille, ou avec les champs de dimensions. Tabulation passe à la cellule suivante.
+- **⌘B** active ou désactive le gras ; **- suivi d’un espace** en début de paragraphe crée une puce ronde.
+- Interligne compact pour une lecture plus dense.
+- Une petite poubelle rouge place une note dans la **Corbeille**, accessible au bas des archives. On peut la restaurer ou **Vider** la corbeille pour supprimer définitivement les notes qui s’y trouvent.
 - Le bouton Archives ouvre le volet gauche, organisé automatiquement par date, avec un aperçu des premières lignes.
 
 Le nettoyage retire les métadonnées et certains caractères invisibles courants. Il ne détermine pas si un texte a été produit par une IA et ne garantit pas la détection de tout filigrane dissimulé dans un texte. Les accents et les caractères utiles, notamment les séquences emoji, sont conservés.
@@ -24,7 +27,7 @@ Le nettoyage retire les métadonnées et certains caractères invisibles courant
 
 Les notes sont des fichiers JSON privés dans `~/Library/Application Support/Compagnons Notes/Notes` (dossier 0700, fichiers 0600). Ce dossier n’est pas synchronisé par l’application et n’est jamais envoyé à GitHub.
 
-Chaque note expire **un mois calendaire après sa création** ; une modification ne repousse pas cette date. Le fichier est supprimé sans alerte. Le nettoyage intervient dans l’app, à l’ouverture et au réveil du Mac, ainsi que par une tâche utilisateur locale toutes les 15 minutes lorsque le Mac fonctionne. Les exports et les éventuelles sauvegardes du système restent indépendants de ce nettoyage.
+Chaque note expire **un mois calendaire après sa création** ; une modification, une mise en corbeille ou une restauration ne repoussent pas cette date. Le fichier est supprimé sans alerte. Le nettoyage intervient dans l’app, à l’ouverture et au réveil du Mac, ainsi que par une tâche utilisateur locale toutes les 15 minutes lorsque le Mac fonctionne. Les exports et les éventuelles sauvegardes du système restent indépendants de ce nettoyage.
 
 La tâche `local.compagnons.notes.expiry` est installée au premier lancement normal. Elle ne démarre aucune fenêtre et ne traite que les notes de cette application. Pour la retirer après désinstallation :
 
