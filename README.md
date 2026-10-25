@@ -4,7 +4,7 @@ Une petite application macOS pour écrire immédiatement, coller du texte propre
 
 ## Installer
 
-[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.1.2-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
+[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.2.0-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
 
 L’application est indépendante de Notes d’Apple. Son identifiant est `local.compagnons.notes`. Signature ad hoc, sans Developer ID ni notarisation Apple ; macOS peut demander une autorisation d’ouverture sur un autre Mac.
 
@@ -13,10 +13,10 @@ L’application est indépendante de Notes d’Apple. Son identifiant est `local
 - Une page vide, prête à écrire dès l’ouverture. Aucun titre de note ni bouton Enregistrer.
 - Sauvegarde locale dès la première lettre. Une nouvelle note se crée avec **Nouvelle note** ou ⌘N.
 - Au collage : suppression des styles étrangers, images, commentaires, attributs et contenus masqués ; les liens cachés sont remplacés par leur URL visible. Certains paramètres de suivi connus sont supprimés des liens développés.
-- Les seuls styles conservés au collage sont **gras**, **puces rondes** et **tableaux**. Les titres collés deviennent du texte normal.
+- Les seuls styles conservés au collage sont **gras**, **puces rondes**, **listes numérotées** et **tableaux**. Les titres collés deviennent du texte normal.
 - Titres T1/T2/T3 utilisables dans la note et les exports. À la copie, leurs niveaux et leur présentation sont retirés ; le gras explicite du corps, les puces et les tableaux restent disponibles.
 - Création d’un tableau en choisissant les colonnes et les lignes dans une grille, ou avec les champs de dimensions. Tabulation passe à la cellule suivante.
-- **⌘B** active ou désactive le gras ; **- suivi d’un espace** en début de paragraphe crée une puce ronde.
+- **⌘B** active ou désactive le gras ; **- suivi d’un espace** en début de paragraphe crée une puce ronde. **6. suivi d’un espace** démarre au numéro 6 ; Entrée continue à 7. Les départs saisis restent indépendants. Un bouton Liste numérotée est placé à côté des puces.
 - Interligne compact pour une lecture plus dense.
 - Une petite poubelle rouge place une note dans la **Corbeille**, accessible au bas des archives. On peut la restaurer ou **Vider** la corbeille pour supprimer définitivement les notes qui s’y trouvent.
 - Le bouton Archives ouvre le volet gauche, organisé automatiquement par date, avec un aperçu des premières lignes.

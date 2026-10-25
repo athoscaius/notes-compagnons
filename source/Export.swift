@@ -26,9 +26,10 @@ enum NoteExport {
             return "<w:r>\(style)\(content)</w:r>"
         }.joined()
     }
-    static func paragraph(_ block:NoteBlock)->String {
+    static func paragraph(_ block:NoteBlock,numID:Int=1)->String {
         var props=""
         if block.kind=="bullet" {props="<w:numPr><w:ilvl w:val=\"\(min(5,block.level ?? 0))\"/><w:numId w:val=\"1\"/></w:numPr>"}
+        else if block.kind=="numbered" {props="<w:numPr><w:ilvl w:val=\"0\"/><w:numId w:val=\"\(numID)\"/></w:numPr>"}
         else if let level=block.level,(1...3).contains(level){props="<w:pStyle w:val=\"Heading\(level)\"/>"}
         return "<w:p><w:pPr>\(props)</w:pPr>\(runs(block.runs ?? []))</w:p>"
     }
@@ -51,13 +52,15 @@ enum NoteExport {
         for path in ["_rels","word/_rels"]{try fm.createDirectory(at:root.appendingPathComponent(path),withIntermediateDirectories:true)}
         func write(_ path:String,_ value:String)throws{try value.write(to:root.appendingPathComponent(path),atomically:true,encoding:.utf8)}
         let (width,height)=paper.twips,margin=850
-        let body=snapshot.blocks.map{$0.kind=="table" ? table($0.rows ?? [],width:width-2*margin):paragraph($0)}.joined()
+        let body=snapshot.blocks.enumerated().map{index,block in block.kind=="table" ? table(block.rows ?? [],width:width-2*margin):paragraph(block,numID:index+2)}.joined()
         let document="<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>\(body)<w:sectPr><w:pgSz w:w=\"\(width)\" w:h=\"\(height)\"\(paper.landscape ? " w:orient=\"landscape\"":"")/><w:pgMar w:top=\"\(margin)\" w:right=\"\(margin)\" w:bottom=\"\(margin)\" w:left=\"\(margin)\" w:header=\"0\" w:footer=\"0\" w:gutter=\"0\"/></w:sectPr></w:body></w:document>"
         try write("word/document.xml",document)
         let headingStyles=[(1,44,240),(2,34,200),(3,28,160)].map {level,size,before in "<w:style w:type=\"paragraph\" w:styleId=\"Heading\(level)\"><w:name w:val=\"heading \(level)\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before=\"\(before)\" w:after=\"120\"/><w:outlineLvl w:val=\"\(level-1)\"/></w:pPr><w:rPr><w:b/><w:sz w:val=\"\(size)\"/><w:color w:val=\"000000\"/></w:rPr></w:style>"}.joined()
         try write("word/styles.xml","<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\" w:eastAsia=\"Arial\"/><w:sz w:val=\"22\"/><w:lang w:val=\"fr-FR\"/><w:color w:val=\"000000\"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after=\"140\" w:line=\"288\" w:lineRule=\"auto\"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Normal\"><w:name w:val=\"Normal\"/></w:style>\(headingStyles)</w:styles>")
         let levels=(0...5).map {i in "<w:lvl w:ilvl=\"\(i)\"><w:start w:val=\"1\"/><w:numFmt w:val=\"bullet\"/><w:lvlText w:val=\"•\"/><w:lvlJc w:val=\"left\"/><w:pPr><w:tabs><w:tab w:val=\"num\" w:pos=\"\(360+i*360)\"/></w:tabs><w:ind w:left=\"\(360+i*360)\" w:hanging=\"180\"/></w:pPr><w:rPr><w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\"/></w:rPr></w:lvl>"}.joined()
-        try write("word/numbering.xml","<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:numbering xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:abstractNum w:abstractNumId=\"0\"><w:multiLevelType w:val=\"multilevel\"/>\(levels)</w:abstractNum><w:num w:numId=\"1\"><w:abstractNumId w:val=\"0\"/></w:num></w:numbering>")
+        let decimal="<w:abstractNum w:abstractNumId=\"1\"><w:multiLevelType w:val=\"singleLevel\"/><w:lvl w:ilvl=\"0\"><w:start w:val=\"1\"/><w:numFmt w:val=\"decimal\"/><w:lvlText w:val=\"%1.\"/><w:lvlJc w:val=\"left\"/><w:pPr><w:ind w:left=\"540\" w:hanging=\"360\"/></w:pPr></w:lvl></w:abstractNum>"
+        let numbered=snapshot.blocks.enumerated().filter{$0.element.kind=="numbered"}.map{index,block in "<w:num w:numId=\"\(index+2)\"><w:abstractNumId w:val=\"1\"/><w:lvlOverride w:ilvl=\"0\"><w:startOverride w:val=\"\(block.number ?? 1)\"/></w:lvlOverride></w:num>"}.joined()
+        try write("word/numbering.xml","<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:numbering xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:abstractNum w:abstractNumId=\"0\"><w:multiLevelType w:val=\"multilevel\"/>\(levels)</w:abstractNum>\(decimal)<w:num w:numId=\"1\"><w:abstractNumId w:val=\"0\"/></w:num>\(numbered)</w:numbering>")
         try write("[Content_Types].xml","<?xml version=\"1.0\" encoding=\"UTF-8\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/><Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/><Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/></Types>")
         try write("_rels/.rels","<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>")
         try write("word/_rels/document.xml.rels","<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"styles\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/><Relationship Id=\"numbering\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering\" Target=\"numbering.xml\"/></Relationships>")
@@ -71,6 +74,7 @@ enum NoteExport {
         var body=""
         for block in snapshot.blocks {
             if block.kind=="table" {body+="<table>"+(block.rows ?? []).map{"<tr>"+$0.map{"<td>"+rich($0.runs)+"</td>"}.joined()+"</tr>"}.joined()+"</table>"}
+            else if block.kind=="numbered"{body+="<div class=\"bullet\"><span>\(block.number ?? 1).</span><p>"+rich(block.runs ?? [])+"</p></div>"}
             else if block.kind=="bullet"{body+="<div class=\"bullet\"><span>•</span><p>"+rich(block.runs ?? [])+"</p></div>"}
             else{let tag=(1...3).contains(block.level ?? 0) ? "h\(block.level!)":"p";body+="<\(tag)>"+rich(block.runs ?? [])+"</\(tag)>"}
         }

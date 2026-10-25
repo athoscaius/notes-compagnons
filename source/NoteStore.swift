@@ -16,6 +16,7 @@ struct NoteBlock:Codable {
     let level:Int?
     let runs:[NoteRun]?
     let rows:[[NoteCell]]?
+    var number:Int? = nil
 }
 struct NoteSnapshot:Codable {
     let html:String
@@ -23,7 +24,7 @@ struct NoteSnapshot:Codable {
     let blocks:[NoteBlock]
     func validate()throws {
         guard html.utf8.count<=20_000_000,plain.utf8.count<=20_000_000,blocks.count<=100_000,
-              blocks.allSatisfy({["paragraph","bullet","table"].contains($0.kind) && (0...5).contains($0.level ?? 0)}) else{throw NotesError.message("Cette note est trop volumineuse pour être enregistrée.")}
+              blocks.allSatisfy({["paragraph","bullet","numbered","table"].contains($0.kind) && (0...5).contains($0.level ?? 0)}) else{throw NotesError.message("Cette note est trop volumineuse pour être enregistrée.")}
     }
     var meaningful:Bool {!plain.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || blocks.contains{$0.kind=="table"}}
 }

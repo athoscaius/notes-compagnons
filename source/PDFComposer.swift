@@ -48,8 +48,10 @@ final class PDFComposer {
     func paragraph(_ block:NoteBlock,next:NoteBlock?)throws {
         let level=block.kind=="paragraph" ? block.level ?? 0:0
         let sizes:[Int:CGFloat]=[1:22,2:17,3:14]
-        let size=sizes[level] ?? 11,isHeading=(1...3).contains(level),bullet=block.kind=="bullet"
-        let indent=bullet ? CGFloat(min(5,block.level ?? 0))*12+12:0
+        let size=sizes[level] ?? 11,isHeading=(1...3).contains(level),bullet=block.kind=="bullet"||block.kind=="numbered"
+        let markerText=block.kind=="numbered" ? "\(block.number ?? 1).":"•"
+        let markerWidth:CGFloat=block.kind=="numbered" ? CGFloat(markerText.count)*7+7:12
+        let indent=bullet ? CGFloat(min(5,block.level ?? 0))*12+markerWidth:0
         let content=lines(block.runs ?? [],size:size,bold:isHeading,width:width-indent)
         let before:CGFloat=isHeading&&cursor>0 ? 12:0
         if isHeading {
@@ -65,7 +67,7 @@ final class PDFComposer {
             let keepPair=(i==0 || i==content.count-2)&&i+1<content.count
             let needed=line.height+(keepPair ? content[i+1].height:0)
             if cursor>0 && cursor+needed>height{try newPage()}
-            if bullet&&i==0,let marker=lines([NoteRun(text:"•",bold:false)],width:12).first{draw(marker,x:margin+indent-12,top:cursor)}
+            if bullet&&i==0,let marker=lines([NoteRun(text:markerText,bold:false)],width:markerWidth).first{draw(marker,x:margin+indent-markerWidth,top:cursor)}
             draw(line,x:margin+indent,top:cursor);cursor += line.height
         }
         cursor += isHeading ? 6:7

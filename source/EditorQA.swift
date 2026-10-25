@@ -7,7 +7,7 @@ enum EditorQA {
     static func run(_ app:NotesApp){
         guard let path=app.qaOutput,let scriptURL=Bundle.main.url(forResource:"qa",withExtension:"js"),let script=try? String(contentsOf:scriptURL,encoding:.utf8) else{fail(app,"QA resources missing");return}
         app.web.evaluateJavaScript(script){result,error in
-            guard error==nil,let result=result as? [String:Any],let data=result["snapshot"] as? [String:Any] else{fail(app,error?.localizedDescription ?? "Invalid JavaScript result");return}
+            guard error==nil,let result=result as? [String:Any],let data=result["snapshot"] as? [String:Any] else{fail(app,(error as NSError?)?.userInfo["WKJavaScriptExceptionMessage"] as? String ?? error?.localizedDescription ?? "Invalid JavaScript result");return}
             do {
                 let root=URL(fileURLWithPath:path,isDirectory:true);try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
                 try JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]).write(to:root.appendingPathComponent("editor-checks.json"))
