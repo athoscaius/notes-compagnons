@@ -4,7 +4,7 @@ Une petite application macOS pour écrire immédiatement, coller du texte propre
 
 ## Installer
 
-[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.1.1-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
+[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.1.2-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
 
 L’application est indépendante de Notes d’Apple. Son identifiant est `local.compagnons.notes`. Signature ad hoc, sans Developer ID ni notarisation Apple ; macOS peut demander une autorisation d’ouverture sur un autre Mac.
 

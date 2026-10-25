@@ -11,12 +11,23 @@ final class ExportOptions:NSObject {
     func makeView()->NSView {
         format.addItems(withTitles:["PDF","Word (.docx)"]);size.addItems(withTitles:Paper.Size.allCases.map(\.rawValue));size.selectItem(at:1);orientation.addItems(withTitles:["Portrait","Paysage"])
         format.target=self;format.action=#selector(changeFormat)
-        let stack=NSStackView();stack.orientation = .horizontal;stack.spacing=16;stack.edgeInsets=NSEdgeInsets(top:10,left:0,bottom:10,right:0)
-        for (title,control) in [("Format",format),("Papier",size),("Orientation",orientation)] {
+        let accessory=NSView(frame:NSRect(x:0,y:0,width:380,height:82))
+        let stack=NSStackView();stack.orientation = .horizontal;stack.spacing=12;stack.alignment = .top
+        stack.translatesAutoresizingMaskIntoConstraints=false
+        for (title,control,width) in [("Format",format,140.0),("Papier",size,60.0),("Orientation",orientation,108.0)] {
             let label=NSTextField(labelWithString:title);label.font = .systemFont(ofSize:11);label.textColor = .secondaryLabelColor
-            let column=NSStackView(views:[label,control]);column.orientation = .vertical;column.alignment = .leading;column.spacing=5;control.widthAnchor.constraint(equalToConstant:title=="Papier" ? 90:150).isActive=true;stack.addArrangedSubview(column)
+            let column=NSStackView(views:[label,control]);column.orientation = .vertical;column.alignment = .leading;column.spacing=5
+            control.widthAnchor.constraint(equalToConstant:width).isActive=true
+            stack.addArrangedSubview(column)
         }
-        return stack
+        accessory.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo:accessory.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo:accessory.centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo:accessory.leadingAnchor,constant:20),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo:accessory.trailingAnchor,constant:-20)
+        ])
+        return accessory
     }
     @objc func changeFormat(){panel?.allowedContentTypes=[UTType(filenameExtension:ext) ?? .data];if let name=panel?.nameFieldStringValue {panel?.nameFieldStringValue=URL(fileURLWithPath:name).deletingPathExtension().lastPathComponent+"."+ext}}
 }
@@ -64,7 +75,7 @@ final class NotesApp:NSObject,NSApplicationDelegate,WKScriptMessageHandler,WKNav
         let view=submenu("Présentation");let archives=view.addItem(withTitle:"Afficher les archives",action:#selector(toggleArchives),keyEquivalent:"a");archives.target=self;archives.keyEquivalentModifierMask=[.command,.shift]
         NSApp.mainMenu=menu
     }
-    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Notes",.applicationVersion:(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "1.1.1"),.credits:NSAttributedString(string:"Compagnons\nÉcriture simple, notes locales, exports Word et PDF.")])}
+    @objc func about(){NSApp.orderFrontStandardAboutPanel(options:[.applicationName:"Notes",.applicationVersion:(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "1.1.2"),.credits:NSAttributedString(string:"Compagnons\nÉcriture simple, notes locales, exports Word et PDF.")])}
     @objc func newNote(){current=nil;session=UUID().uuidString;call("Notes.setNote(null,\(json(session)))")}
     @objc func toggleArchives(){call("document.getElementById('archive-toggle').click()")}
     @objc func exportFromMenu(){web.evaluateJavaScript("Notes.snapshot()") {[weak self] result,error in if let body=result as? [String:Any]{self?.export(body)}}}
