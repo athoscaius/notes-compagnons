@@ -1,0 +1,8 @@
+.DS_Store
+*.app/
+*.dmg
+*.zip
+*.sha256
+*.log
+work/
+__pycache__/
