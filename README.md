@@ -4,7 +4,7 @@ Une petite application macOS pour écrire immédiatement, coller du texte propre
 
 ## Installer
 
-[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.0.0-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
+[Télécharger le DMG pour Mac Apple Silicon](https://github.com/athoscaius/notes-compagnons/releases/latest/download/Notes-Compagnons-1.0.1-arm64.dmg), l’ouvrir et glisser **Notes** dans Applications. macOS 14 ou ultérieur.
 
 L’application est indépendante de Notes d’Apple. Son identifiant est `local.compagnons.notes`. Signature ad hoc, sans Developer ID ni notarisation Apple ; macOS peut demander une autorisation d’ouverture sur un autre Mac.
 
@@ -57,4 +57,4 @@ Le mode `--qa-editor --qa-store /private/tmp/NotesQA/Store --qa-output /private/
 
 ## Sources et droits
 
-Application personnelle créée pour la suite Compagnons. Aucune licence libre supplémentaire n’est accordée au code par la seule publication du dépôt. Les frameworks Apple conservent leurs conditions propres. L’icône du carnet est dessinée par le code du projet.
+Application personnelle créée pour la suite Compagnons. Aucune licence libre supplémentaire n’est accordée au code par la seule publication du dépôt. Les frameworks Apple conservent leurs conditions propres. L’illustration du calmar est fournie par l’utilisateur et conservée dans `assets/provided-icon.png`. La préparation macOS préserve le dessin et sa transparence avec une marge adaptée.
