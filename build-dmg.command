@@ -20,5 +20,5 @@ Signature locale ad hoc, sans Developer ID ni notarisation Apple. Sur un autre M
 
 Projet indépendant de Notes d’Apple. Sources : https://github.com/athoscaius/notes-compagnons
 TXT
-hdiutil create -volname 'Notes · Compagnons' -srcfolder "$WORK" -format UDZO -ov "$ROOT/Notes-Compagnons-1.2.1-arm64.dmg"
-hdiutil verify "$ROOT/Notes-Compagnons-1.2.1-arm64.dmg"
+hdiutil create -volname 'Notes · Compagnons' -srcfolder "$WORK" -format UDZO -ov "$ROOT/Notes-Compagnons-1.2.2-arm64.dmg"
+hdiutil verify "$ROOT/Notes-Compagnons-1.2.2-arm64.dmg"

@@ -70,7 +70,7 @@ final class PDFComposer {
             if bullet&&i==0,let marker=lines([NoteRun(text:markerText,bold:false)],width:markerWidth).first{draw(marker,x:margin+indent-markerWidth,top:cursor)}
             draw(line,x:margin+indent,top:cursor);cursor += line.height
         }
-        cursor += isHeading ? 6:7
+        cursor += isHeading ? 6:0
     }
     func table(_ rows:[[NoteCell]])throws {
         guard !rows.isEmpty else{return}
