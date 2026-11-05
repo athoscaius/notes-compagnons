@@ -9,6 +9,15 @@ enum EditorQA {
         app.web.evaluateJavaScript(script){result,error in
             guard error==nil,let result=result as? [String:Any],let data=result["snapshot"] as? [String:Any] else{fail(app,(error as NSError?)?.userInfo["WKJavaScriptExceptionMessage"] as? String ?? error?.localizedDescription ?? "Invalid JavaScript result");return}
             do {
+                let board=NSPasteboard(name:NSPasteboard.Name("NotesClipboardQA-"+UUID().uuidString))
+                defer{board.releaseGlobally()}
+                board.setData(Data("stale formatting".utf8),forType:.rtf)
+                app.writeClipboard(["plain":"Normal\nSuite","html":""],to:board)
+                guard board.data(forType:.rtf)==nil&&board.data(forType:.html)==nil,board.string(forType:.string)=="Normal\nSuite" else{throw NotesError.message("Plain copy contains rich formatting")}
+                let html="Normal <strong>gras</strong><br>Suite"
+                app.writeClipboard(["plain":"Normal gras\nSuite","html":html],to:board)
+                guard board.data(forType:.rtf)==nil,board.string(forType:.html)==html,board.string(forType:.string)=="Normal gras\nSuite" else{throw NotesError.message("Bold clipboard types or content mismatch")}
+                print("Native pasteboard: plain-only copy, bold-only HTML, stale RTF removed: OK")
                 let root=URL(fileURLWithPath:path,isDirectory:true);try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
                 try JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]).write(to:root.appendingPathComponent("editor-checks.json"))
                 let snapshot=try app.snapshot(data)

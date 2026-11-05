@@ -73,6 +73,24 @@ function blocksFor(box){
  for(const n of box.childNodes)emit(n);flush();return blocks;
 }
 function plainFor(blocks){return blocks.map(b=>b.kind==='table'?b.rows.map(row=>row.map(cell=>cell.runs.map(r=>r.text).join('')).join('\t')).join('\n'):(b.kind==='bullet'?'• ':b.kind==='numbered'?(b.number??1)+'. ':'')+(b.runs??[]).map(r=>r.text).join('')).join('\n').replace(/\n{3,}/g,'\n\n');}
+// Clipboard output is independent of editor/export layout: only text, breaks and explicit bold.
+function clipboardPayload(fragment){
+ const blocks=blocksFor(sanitize(fragment,false));
+ const lines=blocks.flatMap(b=>b.kind==='table'?b.rows.map(row=>row.flatMap((cell,i)=>[...(i?[{text:'\t',bold:false}]:[]),...cell.runs])):[[{text:b.kind==='bullet'?'• ':b.kind==='numbered'?(b.number??1)+'. ':'',bold:false},...(b.runs??[])]]);
+ const plain=lines.map(runs=>runs.map(r=>r.text).join('')).join('\n');
+ const escape=text=>text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+ const hasBold=lines.some(runs=>runs.some(r=>r.bold&&r.text));
+ const html=hasBold?lines.map(runs=>runs.map(r=>r.bold?'<strong>'+escape(r.text)+'</strong>':escape(r.text)).join('')).join('<br>'):'';
+ return {plain,html};
+}
+function selectionClipboard(){
+ const selection=getSelection();if(!selection.rangeCount||selection.isCollapsed||!editor.contains(selection.anchorNode)||!editor.contains(selection.focusNode))return null;
+ const range=selection.getRangeAt(0);let fragment=range.cloneContents();
+ // cloneContents omits ancestors of a selection entirely inside a bold run or heading.
+ let ancestor=range.commonAncestorContainer;if(ancestor.nodeType!==Node.ELEMENT_NODE)ancestor=ancestor.parentElement;
+ while(ancestor&&ancestor!==editor){const wrapper=ancestor.cloneNode(false);wrapper.append(fragment);fragment=wrapper;ancestor=ancestor.parentElement;}
+ return clipboardPayload(fragment);
+}
 function snapshot(){const box=sanitize(editor.cloneNode(true),true); // clone contains the outer article, never user metadata
  const inner=box.children.length===1&&box.firstElementChild.tagName==='P'&&box.firstElementChild.querySelector('p,h1,h2,h3,table,ul,ol')?box.firstElementChild:box;
  const blocks=blocksFor(inner),plain=plainFor(blocks);return {html:inner.innerHTML,plain,blocks};}
@@ -143,7 +161,7 @@ editor.addEventListener('beforeinput',e=>{
  if(/^format/.test(e.inputType)&&!['formatBold','formatBlock'].includes(e.inputType))e.preventDefault();
 });
 editor.addEventListener('paste',e=>{e.preventDefault();remember();if(window.webkit)requestPaste();else acceptPaste({html:e.clipboardData.getData('text/html'),plain:e.clipboardData.getData('text/plain')});});
-for(const type of ['copy','cut'])editor.addEventListener(type,e=>{const s=getSelection();if(!s.rangeCount||s.isCollapsed)return;const clean=sanitize(s.getRangeAt(0).cloneContents(),false);e.preventDefault();e.clipboardData.setData('text/html',clean.innerHTML);e.clipboardData.setData('text/plain',plainFor(blocksFor(clean)));if(type==='cut'){document.execCommand('delete');changed();}});
+for(const type of ['copy','cut'])editor.addEventListener(type,e=>{const payload=selectionClipboard();if(!payload)return;e.preventDefault();e.clipboardData.setData('text/plain',payload.plain);if(payload.html)e.clipboardData.setData('text/html',payload.html);send('copy',payload);if(type==='cut'){document.execCommand('delete');changed();}});
 editor.addEventListener('drop',e=>{e.preventDefault();remember();acceptPaste({plain:e.dataTransfer.getData('text/plain'),html:e.dataTransfer.getData('text/html')});});
 editor.addEventListener('keydown',e=>{if((e.key===' '||e.code==='Space')&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.isComposing&&autoList()){e.preventDefault();return;}if((e.metaKey||e.ctrlKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='b'){e.preventDefault();document.execCommand('bold');remember();changed();return;}if((e.metaKey||e.ctrlKey)&&['i','u','k'].includes(e.key.toLowerCase()))e.preventDefault();if(e.key==='Tab'){const cell=getSelection().anchorNode?.parentElement?.closest('td,th');if(cell){e.preventDefault();const table=cell.closest('table'),cells=[...table.querySelectorAll('td,th')];let next=cells[cells.indexOf(cell)+(e.shiftKey?-1:1)];if(!next&&!e.shiftKey&&table.rows.length<50){const row=table.insertRow();for(let c=0;c<cell.parentElement.cells.length;c++)row.insertCell().innerHTML='<p><br></p>';next=row.cells[0];changed();}if(next){const range=document.createRange();range.selectNodeContents(next);range.collapse(true);getSelection().removeAllRanges();getSelection().addRange(range);remember();}}}});
 document.addEventListener('selectionchange',()=>{remember();updateTools();});
@@ -161,6 +179,6 @@ document.getElementById('empty-trash').addEventListener('click',()=>send('emptyT
 document.getElementById('new-note').addEventListener('click',()=>send('new'));
 document.getElementById('export').addEventListener('click',()=>send('export',snapshot()));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('table-picker').hidden=true;editor.focus();}if((e.metaKey||e.ctrlKey)&&e.shiftKey&&e.key.toLowerCase()==='a'){e.preventDefault();document.getElementById('archive-toggle').click();}});
-window.Notes={bootstrap(data){notes=data.notes;setNote(null,data.session);},setNote,saved(data){if(data.session!==session)return;current=data.id;dirty=false;notes=data.notes;document.getElementById('save-status').textContent='Enregistrée sur ce Mac';document.getElementById('save-status').classList.remove('save-error');if(!sidebar.hidden)renderArchives();},archives(data){notes=data.notes;renderArchives();if(current&&!notes.some(n=>n.id===current&&!n.deletedAt))setNote(null,data.session);},acceptPaste,snapshot,newNote(){send('new');},focus(){editor.focus();},exportBusy(value){document.getElementById('export').classList.toggle('export-busy',value);},error(message){document.getElementById('save-status').textContent=message;document.getElementById('save-status').classList.add('save-error');},exported(message){document.getElementById('save-status').textContent=message;},test:{cleanText,publicURL,sanitize,blocksFor,plainFor,setHTML(html){setNote({id:null,html,plain:html});},copyHTML(){const range=document.createRange();range.selectNodeContents(editor);return sanitize(range.cloneContents(),false).innerHTML;},createTable}};
+window.Notes={bootstrap(data){notes=data.notes;setNote(null,data.session);},setNote,saved(data){if(data.session!==session)return;current=data.id;dirty=false;notes=data.notes;document.getElementById('save-status').textContent='Enregistrée sur ce Mac';document.getElementById('save-status').classList.remove('save-error');if(!sidebar.hidden)renderArchives();},archives(data){notes=data.notes;renderArchives();if(current&&!notes.some(n=>n.id===current&&!n.deletedAt))setNote(null,data.session);},acceptPaste,snapshot,newNote(){send('new');},focus(){editor.focus();},exportBusy(value){document.getElementById('export').classList.toggle('export-busy',value);},error(message){document.getElementById('save-status').textContent=message;document.getElementById('save-status').classList.add('save-error');},exported(message){document.getElementById('save-status').textContent=message;},test:{clipboardPayload,selectionClipboard,cleanText,publicURL,sanitize,blocksFor,plainFor,setHTML(html){setNote({id:null,html,plain:html});},copyHTML(){const range=document.createRange();range.selectNodeContents(editor);return clipboardPayload(range.cloneContents()).html;},createTable}};
 editor.classList.add('is-empty');send('ready');
 })();
